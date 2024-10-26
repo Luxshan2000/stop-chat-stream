@@ -37,12 +37,9 @@ async def chat(request: ChatRequest):
     stream = request.stream
     request_id = request.request_id
 
-    logger.info(model)
-
     client = AsyncOpenAI()
 
     # Store client and abort flag in memory
-    clients[request_id] = {"client": client, "abort_flag": False}
     store_client(request_id=request_id)
 
     res = await client.chat.completions.create(
@@ -52,7 +49,8 @@ async def chat(request: ChatRequest):
     async def generate_response():
         async for chunk in res:
             content = chunk.choices[0].delta.content
-            if clients[request_id]["abort_flag"]:
+            if clients[request_id]:
+                logger.info("here")
                 await client.close()
                 remove_client(request_id=request_id)
                 return
@@ -68,7 +66,9 @@ async def chat(request: ChatRequest):
 @app.post("/abort/")
 async def abort_stream(request: AbortRequest):
     request_id = request.request_id
-    if request.request_id in clients:
+    logger.info(f"request_id {request_id}")
+    logger.info(clients)
+    if request_id in clients:
         set_flag(request_id=request_id)
         return {"message": f"Streaming for request {request_id} will be aborted."}
     else:
