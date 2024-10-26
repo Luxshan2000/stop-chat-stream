@@ -1,86 +1,74 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
+import { handleSendMessage, handleAbortRequest } from "./apiHandlers";
+
+interface Question {
+  question: string;
+  request_id: string;
+}
 
 const Chat: React.FC = () => {
-  const [question, setQuestion] = useState<{
-    question: string;
-    request_id: string;
-  }>();
+  const [question, setQuestion] = useState<Question>({
+    question: "",
+    request_id: "",
+  });
   const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [abort, setAbort] = useState<boolean>(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSend = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    setAnswer("");
-    setLoading(true);
-    // setAbort(false);
+    const updatedQuestion = {
+      question: question.question,
+      request_id: question.request_id || uuidv4(),
+    };
+    setQuestion(updatedQuestion);
 
-    try {
-      const response = await fetch("http://localhost:8000/chat/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          request_id: uuidv4().toString(),
-          model: "gpt-3.5-turbo-0125",
-          messages: [{ role: "user", content: "hello" }],
-          stream: true,
-        }),
-        // signal: abortController.current.signal,
-      });
-
-      if (!response.body)
-        throw new Error("ReadableStream not supported in this environment.");
-
-      const reader = response.body.getReader();
-      let responseText = "";
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done || abort) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        responseText += chunk;
-        console.log(chunk);
-
-        setAnswer((prev) => prev + chunk);
-      }
-    } catch (error) {
-      if (abort) {
-        console.log("Streaming request was aborted.");
-      } else {
-        console.error("Error during streaming:", error);
-      }
-    } finally {
-      setLoading(false);
-    }
+    await handleSendMessage(
+      {
+        request_id: updatedQuestion.request_id,
+        model: "gpt-3.5-turbo-0125",
+        messages: [{ role: "user", content: updatedQuestion.question }],
+        stream: true,
+      },
+      setAnswer,
+      setLoading,
+    );
   };
+
+  const handleAbort = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    await handleAbortRequest(question.request_id);
+  };
+
   return (
-    <div>
-      <h1>Chat with AI</h1>
-      <form onSubmit={handleSubmit}>
+    <div className="chat-container">
+      <h1 className="chat-title">Chat with AI</h1>
+      <form className="chat-form">
         <input
           type="text"
-          value={question?.question}
+          value={question.question}
           onChange={(e) =>
             setQuestion({ question: e.target.value, request_id: uuidv4() })
           }
           placeholder="Ask your question..."
           required
+          className="chat-input"
+          disabled={loading}
         />
-        <button type="submit" disabled={loading}>
-          {loading ? "Loading..." : "Send"}
-        </button>
+        {!loading ? (
+          <button onClick={handleSend} className="chat-button">
+            Send
+          </button>
+        ) : (
+          <button onClick={handleAbort} className="chat-button">
+            Stop
+          </button>
+        )}
       </form>
       {answer && (
-        <div>
-          <h2>Answer:</h2>
-          <p>{answer}</p>
+        <div className="chat-answer">
+          <p className="answer-text">{answer}</p>
         </div>
       )}
     </div>
