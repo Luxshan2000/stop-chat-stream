@@ -1,12 +1,12 @@
-import React from 'react';
-import Chat from './Chat';
+import React from "react";
+import Chat from "./Chat";
 
 const App: React.FC = () => {
-    return (
-        <div className="App">
-            <Chat />
-        </div>
-    );
+  return (
+    <div className="App">
+      <Chat />
+    </div>
+  );
 };
 
 export default App;
