@@ -6,6 +6,7 @@ from be.db.models import AbortSignal
 def save_abort_signal_to_redis(id: str, flag: bool, redis_client: Redis):
     key = f"abort:{id}"
     redis_client.hset(key, mapping={"id": id, "flag": int(flag)})
+    redis_client.expire(key, 900)
     redis_client.close()
 
 
