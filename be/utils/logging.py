@@ -16,6 +16,7 @@ def get_logger(name):
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+    logging.getLogger("sqlalchemy").setLevel(logging.CRITICAL)
 
     logger = logging.getLogger(name)
     return logger
